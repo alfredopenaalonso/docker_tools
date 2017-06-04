@@ -1,0 +1,72 @@
+version: '2'
+services:
+    portainer:
+        image: portainer/portainer
+        container_name: alpena_server_portainer
+        ports:
+            - "9000:9000"
+        restart: always
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock"
+            - ./data/portainer:/data
+
+    influxdbData:
+        image: busybox
+        container_name: alpena_server_influxdbData
+        volumes:
+            - ./data/influxdb:/data
+
+    influxdb:
+        image: tutum/influxdb
+        container_name: alpena_server_influxdb
+        restart: always
+        environment:
+            - PRE_CREATE_DB=cadvisor
+        ports:
+            - "8083:8083"
+            - "8086:8086"
+        expose:
+            - "8090"
+            - "8099"
+        volumes_from:
+            - "influxdbData"
+
+    cadvisor:
+        image: google/cadvisor
+        container_name: alpena_server_cadvisor
+        restart: always
+        links:
+            - influxdb:influxsrv
+        command: -storage_driver=influxdb -storage_driver_db=cadvisor -storage_driver_host=influxsrv:8086
+        ports:
+            - "8080:8080"
+        volumes:
+            - ../:/rootfs:ro
+            - /var/run:/var/run:rw
+            - /sys:/sys:ro
+            - /var/lib/docker/:/var/lib/docker:ro
+
+    grafanaData:
+        image: busybox
+        container_name: alpena_server_grafanaData
+        volumes:
+            - ./data/grafana:/var/lib/grafana
+
+    grafana:
+        image: grafana/grafana
+        container_name: alpena_server_grafana
+        restart: always
+        links:
+            - influxdb:influxsrv
+        ports:
+            - "3000:3000"
+        environment:
+            - HTTP_USER=admin
+            - HTTP_PASS=admin
+            - INFLUXDB_HOST=influxsrv
+            - INFLUXDB_PORT=8086
+            - INFLUXDB_NAME=cadvisor
+            - INFLUXDB_USER=root
+            - INFLUXDB_PASS=root
+        volumes_from:
+            - "grafanaData"
