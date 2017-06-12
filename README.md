@@ -1,4 +1,4 @@
-# Nginx PHP MySQL
+# Portainer, InfluxDB, cAdvisor and Grafana
 
 Docker managing and monitoring tools running Portainer, InfluxDB, cAdvisor and Grafana
 
